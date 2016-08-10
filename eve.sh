@@ -1,12 +1,13 @@
 #!/bin/bash -ex
 
+SCRIPT_FILEPATH="$(cd "$(dirname "$0")"; pwd)/$(basename "$0")"
+OPENCV_PATH=`dirname $SCRIPT_FILEPATH`
+
+# defaults
+BUILD_ABIS="arm7-android arm8-android"
+
 function main ()
 {
-  SCRIPT_FILEPATH="$(cd "$(dirname "$0")"; pwd)/$(basename "$0")"
-  SCRIPT_PATH=`dirname $SCRIPT_FILEPATH`
-  OPENCV_PATH=${SCRIPT_PATH%%\/platforms\/scripts}
-  # defaults
-  BUILD_ABIS="arm7-android arm8-android"
   BUILD_ROOT=$OPENCV_PATH
   INSTALL_PATH=$OPENCV_PATH/install
   ENABLE_OPENCL=ON
@@ -58,93 +59,11 @@ function main ()
   [ ! -d ${INSTALL_PATH} ] && mkdir -p ${INSTALL_PATH}
   [[ -n "${BUILD_ABIS}" ]] && build_platform ${BUILD_ABIS}
   popd
-}
-
-function install_android_library ()
-# $1 install path
-# $2 debug or release
-{
-  set +e
-  pwd
-  INSTALL_ALL=$1
-  if [[ "$2" == "Debug" ]] ; then
-    BUILD_TYPE_EXT=debug
-    INSTALL_DIR=$1".debug"
-  else
-    BUILD_TYPE_EXT=release
-    INSTALL_DIR=$1".release"
-  fi
-  [ ! -d ${INSTALL_DIR} ] && mkdir -p ${INSTALL_DIR}
-  #[ -d install/sdk/native/libs/armeabi-v7a ] && rm -rf install/sdk/native/libs/armeabi-v7a
-  #[ -d install/sdk/native/libs/armeabi-v7a-hard ] && mv install/sdk/native/libs/armeabi-v7a-hard install/sdk/native/libs/armeabi-v7a
-  #[ -d install/sdk/native/3rdparty/libs/armeabi-v7a ] && rm -rf install/sdk/native/3rdparty/libs/armeabi-v7a
-  #[ -d install/sdk/native/3rdparty/libs/armeabi-v7a-hard ] && mv install/sdk/native/3rdparty/libs/armeabi-v7a-hard install/sdk/native/3rdparty/libs/armeabi-v7a
-  
-  cp -av $BUILD_ROOT/platforms/android/template/opencv-lib/* ${INSTALL_DIR}
-  cp -av lint.xml ${INSTALL_DIR}
-  cp -av bin/aidl ${INSTALL_DIR}/src/main
-  cp -av bin/AndroidManifest.xml ${INSTALL_DIR}/src/main
-  
-  mkdir -p ${INSTALL_DIR}/src/main/jnilibs
-  #cp -av install/sdk/native/3rdparty/libs/* ${INSTALL_DIR}/src/main/jnilibs
-  
-  mkdir -p $1/src/main/${BUILD_TYPE_EXT}/jnilibs
-  cp -av install/sdk/native/libs/ ${INSTALL_ALL}/src/main/${BUILD_TYPE_EXT}/jnilibs
-  cp -av install/sdk/native/libs/ ${INSTALL_DIR}/src/main/jnilibs
-  
-  # scrub all .a library files
-  find ${INSTALL_ALL}* -name *.a | xargs -n 1 -t rm
-  find ${INSTALL_DIR}* -name *.a | xargs -n 1 -t rm
-  
-  #mkdir -p $1/src/main/${BUILD_TYPE_EXT}/jni
-  #cp -av install/sdk/native/jni/include $1/src/main/${BUILD_TYPE_EXT}/jni
-  cp -av install/sdk/native/jni/include ${INSTALL_DIR}/src/main/jni
-  
-  mkdir -p ${INSTALL_ALL}/src/main/${BUILD_TYPE_EXT}/java
-  cp -av install/sdk/java/src/ ${INSTALL_ALL}/src/main/${BUILD_TYPE_EXT}/java
-  
-  cp -av install/sdk/java/src/ ${INSTALL_DIR}/src/main/java
-  cp -av install/sdk/java/res ${INSTALL_DIR}/src/main
-  cp -av install/sdk/java/AndroidManifest.xml ${INSTALL_DIR}/src/main
-  cp -av install/sdk/java/lint.xml ${INSTALL_DIR}
-  set -e
-}
-
-function build_target ()
-# $1 = target cmake directory
-# $2 = cmake build type
-# $3 = target ABI
-# $4 = target platform
-{
-  local TARGET_DIR=${1}
-  local TARGET_CMAKE_TYPE=${2}
-  local TARGET_ABI=${3}
-  local TARGET_PLATFORM=${4}
-  local REBUILD_CMAKE=
-  [ "$TARGET_ABI" == "arm7" ] && TARGET_ABI="armeabi-v7a with NEON"
-  [ "$TARGET_ABI" == "arm8" ] && TARGET_ABI="arm64-v8a"
-  [ "$TARGET_PLATFORM" == "osx" ] && TARGET_ABI="x86_64"
-  [ ! -d "$TARGET_DIR" ] && mkdir -p "$TARGET_DIR" && REBUILD_CMAKE=true
-  pushd "$TARGET_DIR"
-  if [ -n "$REBUILD_CMAKE" ] ; then
-    cmake '-GUnix Makefiles' -DCMAKE_BUILD_TYPE=$2 -DANDROID_ABI="$TARGET_ABI" $EXTRA_OPTIONS $COMMON_OPTIONS ${BUILD_ROOT}
-  fi
-  make -j${BUILD_NUM_CORES}
-  #cmake -DCOMPONENT=libs -P cmake_install.cmake
-  #cmake -DCOMPONENT=dev -P cmake_install.cmake
-  #cmake -DCOMPONENT=java -P cmake_install.cmake
-  #cmake -DCOMPONENT=samples -P cmake_install.cmake
-  if [ "$2" == "Debug" ] ; then
-    make install
-  else
-    make install/strip
-  fi
-  [ "$TARGET_PLATFORM" == "android" ] && install_android_library $INSTALL_PATH $2
-  popd
-}
+} 
 
 # valid ABIs = arm7,arm8
 function build_platform ()
+#$1 [build ABIs] array, e.g. "arm7-android x86_64-osx"
 {
   for i in "$@"
   do
@@ -190,6 +109,90 @@ function build_platform ()
     ;;
   esac
   done
+}
+
+function build_target ()
+# $1 = target cmake directory
+# $2 = cmake build type
+# $3 = target ABI
+# $4 = target platform
+{
+  local TARGET_DIR=${1}
+  local TARGET_CMAKE_TYPE=${2}
+  local TARGET_ABI=${3}
+  local TARGET_PLATFORM=${4}
+  local REBUILD_CMAKE=
+  [ "$TARGET_ABI" == "arm7" ] && TARGET_ABI="armeabi-v7a with NEON"
+  [ "$TARGET_ABI" == "arm8" ] && TARGET_ABI="arm64-v8a"
+  [ "$TARGET_PLATFORM" == "osx" ] && TARGET_ABI="x86_64"
+  [ ! -d "$TARGET_DIR" ] && mkdir -p "$TARGET_DIR" && REBUILD_CMAKE=true
+  pushd "$TARGET_DIR"
+  if [ -n "$REBUILD_CMAKE" ] ; then
+    cmake '-GUnix Makefiles' -DCMAKE_BUILD_TYPE=$2 -DANDROID_ABI="$TARGET_ABI" $EXTRA_OPTIONS $COMMON_OPTIONS ${BUILD_ROOT}
+  fi
+  make -j${BUILD_NUM_CORES}
+  #cmake -DCOMPONENT=libs -P cmake_install.cmake
+  #cmake -DCOMPONENT=dev -P cmake_install.cmake
+  #cmake -DCOMPONENT=java -P cmake_install.cmake
+  #cmake -DCOMPONENT=samples -P cmake_install.cmake
+  if [ "$2" == "Debug" ] ; then
+    make install
+  else
+    make install/strip
+  fi
+  install_library ${INSTALL_PATH} $2 ${TARGET_PLATFORM}
+  popd
+}
+
+function install_library ()
+# $1 install path
+# $2 debug or release
+# $3 platform = "android" or "osx"
+{
+  set +e
+  pwd
+  INSTALL_ALL=$1
+  if [[ "$2" == "Debug" ]] ; then
+    BUILD_TYPE_EXT=debug
+    INSTALL_DIR=$1"."$3".debug"
+  else
+    BUILD_TYPE_EXT=release
+    INSTALL_DIR=$1"."$3".release"
+  fi
+  [ ! -d ${INSTALL_DIR} ] && mkdir -p ${INSTALL_DIR}
+  #[ -d install/sdk/native/libs/armeabi-v7a ] && rm -rf install/sdk/native/libs/armeabi-v7a
+  #[ -d install/sdk/native/libs/armeabi-v7a-hard ] && mv install/sdk/native/libs/armeabi-v7a-hard install/sdk/native/libs/armeabi-v7a
+  #[ -d install/sdk/native/3rdparty/libs/armeabi-v7a ] && rm -rf install/sdk/native/3rdparty/libs/armeabi-v7a
+  #[ -d install/sdk/native/3rdparty/libs/armeabi-v7a-hard ] && mv install/sdk/native/3rdparty/libs/armeabi-v7a-hard install/sdk/native/3rdparty/libs/armeabi-v7a
+  
+  cp -av $BUILD_ROOT/platforms/android/template/opencv-lib/* ${INSTALL_DIR}
+  cp -av lint.xml ${INSTALL_DIR}
+  cp -av bin/aidl ${INSTALL_DIR}/src/main
+  cp -av bin/AndroidManifest.xml ${INSTALL_DIR}/src/main
+  
+  mkdir -p ${INSTALL_DIR}/src/main/jnilibs
+  #cp -av install/sdk/native/3rdparty/libs/* ${INSTALL_DIR}/src/main/jnilibs
+  
+  mkdir -p $1/src/main/${BUILD_TYPE_EXT}/jnilibs
+  cp -av install/sdk/native/libs/ ${INSTALL_ALL}/src/main/${BUILD_TYPE_EXT}/jnilibs
+  cp -av install/sdk/native/libs/ ${INSTALL_DIR}/src/main/jnilibs
+  
+  # scrub all .a library files
+  find ${INSTALL_ALL}* -name *.a | xargs -n 1 -t rm
+  find ${INSTALL_DIR}* -name *.a | xargs -n 1 -t rm
+  
+  #mkdir -p $1/src/main/${BUILD_TYPE_EXT}/jni
+  #cp -av install/sdk/native/jni/include $1/src/main/${BUILD_TYPE_EXT}/jni
+  cp -av install/sdk/native/jni/include ${INSTALL_DIR}/src/main/jni
+  
+  mkdir -p ${INSTALL_ALL}/src/main/${BUILD_TYPE_EXT}/java
+  cp -av install/sdk/java/src/ ${INSTALL_ALL}/src/main/${BUILD_TYPE_EXT}/java
+  
+  cp -av install/sdk/java/src/ ${INSTALL_DIR}/src/main/java
+  cp -av install/sdk/java/res ${INSTALL_DIR}/src/main
+  cp -av install/sdk/java/AndroidManifest.xml ${INSTALL_DIR}/src/main
+  cp -av install/sdk/java/lint.xml ${INSTALL_DIR}
+  set -e
 }
 
 main "$@"

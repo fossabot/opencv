@@ -46,7 +46,7 @@ script:
   # By default Travis-ci executes './gradlew build connectedCheck' if no 'script:' section found.
   #- ./platforms/android/build_sdk.py build .
   - mkdir install
-  - ./platforms/scripts/android-cmake.sh -i=`pwd`/install
+  - ./eve.sh -i=`pwd`/install
   - ls -la install
 
 notifications:
