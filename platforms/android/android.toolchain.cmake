@@ -839,7 +839,7 @@ endif()
 
 # runtime choice (STL, rtti, exceptions)
 if( NOT ANDROID_STL )
-  set( ANDROID_STL gnustl_static )
+  set( ANDROID_STL gnustl_shared )
 endif()
 set( ANDROID_STL "${ANDROID_STL}" CACHE STRING "C++ runtime" )
 set( ANDROID_STL_FORCE_FEATURES ON CACHE BOOL "automatically configure rtti and exceptions support based on C++ runtime" )

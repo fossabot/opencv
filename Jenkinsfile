@@ -16,11 +16,11 @@ node {
       sh "./build.sh clean"
   }
 
-  //tell Jenkins to archive the apks
   stage ('Archive') {
-    step([$class: 'ArtifactArchiver', artifacts: 'app/build/outputs/apk/*.apk', fingerprint: true])
+    step([$class: 'ArtifactArchiver', artifacts: 'install.android.debug/*', fingerprint: true])
+    step([$class: 'ArtifactArchiver', artifacts: 'install.android.release/*', fingerprint: true])
   }
-  /*
+/*
   stage ('Upload To Fabric') {
     sh "./gradlew crashlyticsUploadDistribution${flavor}Debug  -PBUILD_NUMBER=${env.BUILD_NUMBER}"
   } */
