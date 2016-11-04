@@ -1,4 +1,4 @@
-#!/bin/bash -ex
+#!/bin/bash -e
 
 SCRIPT_FILEPATH="$(cd "$(dirname "$0")"; pwd)/$(basename "$0")"
 OPENCV_PATH=`dirname $SCRIPT_FILEPATH`
@@ -26,6 +26,7 @@ function main ()
   fi
 
   pushd $BUILD_ROOT
+  INSTALL_PATH=`pwd`/install
   for i in "$@"
   do
   case $i in
@@ -56,10 +57,13 @@ function main ()
   esac
   done
 
+  echo "INSTALL_PATH=${INSTALL_PATH}"
+  echo "BUILD_ABIS=${BUILD_ABIS}"
+
   [ ! -d ${INSTALL_PATH} ] && mkdir -p ${INSTALL_PATH}
   [[ -n "${BUILD_ABIS}" ]] && build_platform ${BUILD_ABIS}
   popd
-} 
+}
 
 # valid ABIs = arm7,arm8
 function build_platform ()
@@ -164,30 +168,30 @@ function install_library ()
   #[ -d install/sdk/native/libs/armeabi-v7a-hard ] && mv install/sdk/native/libs/armeabi-v7a-hard install/sdk/native/libs/armeabi-v7a
   #[ -d install/sdk/native/3rdparty/libs/armeabi-v7a ] && rm -rf install/sdk/native/3rdparty/libs/armeabi-v7a
   #[ -d install/sdk/native/3rdparty/libs/armeabi-v7a-hard ] && mv install/sdk/native/3rdparty/libs/armeabi-v7a-hard install/sdk/native/3rdparty/libs/armeabi-v7a
-  
+
   cp -av $BUILD_ROOT/platforms/android/template/opencv-lib/* ${INSTALL_DIR}
   cp -av lint.xml ${INSTALL_DIR}
   cp -av bin/aidl ${INSTALL_DIR}/src/main
   cp -av bin/AndroidManifest.xml ${INSTALL_DIR}/src/main
-  
+
   mkdir -p ${INSTALL_DIR}/src/main/jnilibs
   #cp -av install/sdk/native/3rdparty/libs/* ${INSTALL_DIR}/src/main/jnilibs
-  
+
   mkdir -p $1/src/main/${BUILD_TYPE_EXT}/jnilibs
   cp -av install/sdk/native/libs/ ${INSTALL_ALL}/src/main/${BUILD_TYPE_EXT}/jnilibs
   cp -av install/sdk/native/libs/ ${INSTALL_DIR}/src/main/jnilibs
-  
+
   # scrub all .a library files
   find ${INSTALL_ALL}* -name *.a | xargs -n 1 -t rm
   find ${INSTALL_DIR}* -name *.a | xargs -n 1 -t rm
-  
+
   #mkdir -p $1/src/main/${BUILD_TYPE_EXT}/jni
   #cp -av install/sdk/native/jni/include $1/src/main/${BUILD_TYPE_EXT}/jni
   cp -av install/sdk/native/jni/include ${INSTALL_DIR}/src/main/jni
-  
+
   mkdir -p ${INSTALL_ALL}/src/main/${BUILD_TYPE_EXT}/java
   cp -av install/sdk/java/src/ ${INSTALL_ALL}/src/main/${BUILD_TYPE_EXT}/java
-  
+
   cp -av install/sdk/java/src/ ${INSTALL_DIR}/src/main/java
   cp -av install/sdk/java/res ${INSTALL_DIR}/src/main
   cp -av install/sdk/java/AndroidManifest.xml ${INSTALL_DIR}/src/main
