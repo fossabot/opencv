@@ -581,7 +581,7 @@ cv::DetectionBasedTracker::Parameters::Parameters()
 cv::DetectionBasedTracker::InnerParameters::InnerParameters()
 {
     numLastPositionsToTrack=4;
-    numStepsToWaitBeforeFirstShow=6;
+    numStepsToWaitBeforeFirstShow=1;
     numStepsToTrackWithoutDetectingIfObjectHasNotBeenShown=3;
     numStepsToShowWithoutDetecting=3;
 
