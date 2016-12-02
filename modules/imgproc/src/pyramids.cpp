@@ -1165,8 +1165,17 @@ static bool ocl_pyrUp( InputArray _src, OutputArray _dst, const Size& _dsz, int 
     ocl::Kernel k;
     if (ocl::Device::getDefault().isIntel() && channels == 1)
     {
-        k.create("pyrUp_unrolled", ocl::imgproc::pyr_up_oclsrc, buildOptions);
-        globalThreads[0] = dst.cols/2; globalThreads[1] = dst.rows/2;
+        if (type == CV_8UC1 && src.cols % 2 == 0)
+        {
+            buildOptions.clear();
+            k.create("pyrUp_cols2", ocl::imgproc::pyramid_up_oclsrc, buildOptions);
+            globalThreads[0] = dst.cols/4; globalThreads[1] = dst.rows/2;
+        }
+        else
+        {
+            k.create("pyrUp_unrolled", ocl::imgproc::pyr_up_oclsrc, buildOptions);
+            globalThreads[0] = dst.cols/2; globalThreads[1] = dst.rows/2;
+        }
     }
     else
         k.create("pyrUp", ocl::imgproc::pyr_up_oclsrc, buildOptions);
@@ -1187,6 +1196,8 @@ namespace cv
 {
 static bool ipp_pyrdown( InputArray _src, OutputArray _dst, const Size& _dsz, int borderType )
 {
+    CV_INSTRUMENT_REGION_IPP()
+
 #if IPP_VERSION_X100 >= 810 && IPP_DISABLE_BLOCK
     Size dsz = _dsz.area() == 0 ? Size((_src.cols() + 1)/2, (_src.rows() + 1)/2) : _dsz;
     bool isolated = (borderType & BORDER_ISOLATED) != 0;
@@ -1245,6 +1256,8 @@ static bool ipp_pyrdown( InputArray _src, OutputArray _dst, const Size& _dsz, in
 
 void cv::pyrDown( InputArray _src, OutputArray _dst, const Size& _dsz, int borderType )
 {
+    CV_INSTRUMENT_REGION()
+
     CV_Assert(borderType != BORDER_CONSTANT);
 
     CV_OCL_RUN(_src.dims() <= 2 && _dst.isUMat(),
@@ -1292,6 +1305,8 @@ namespace cv
 {
 static bool ipp_pyrup( InputArray _src, OutputArray _dst, const Size& _dsz, int borderType )
 {
+    CV_INSTRUMENT_REGION_IPP()
+
 #if IPP_VERSION_X100 >= 810 && IPP_DISABLE_BLOCK
     Size sz = _src.dims() <= 2 ? _src.size() : Size();
     Size dsz = _dsz.area() == 0 ? Size(_src.cols()*2, _src.rows()*2) : _dsz;
@@ -1348,6 +1363,8 @@ static bool ipp_pyrup( InputArray _src, OutputArray _dst, const Size& _dsz, int 
 
 void cv::pyrUp( InputArray _src, OutputArray _dst, const Size& _dsz, int borderType )
 {
+    CV_INSTRUMENT_REGION()
+
     CV_Assert(borderType == BORDER_DEFAULT);
 
     CV_OCL_RUN(_src.dims() <= 2 && _dst.isUMat(),
@@ -1396,6 +1413,8 @@ namespace cv
 {
 static bool ipp_buildpyramid( InputArray _src, OutputArrayOfArrays _dst, int maxlevel, int borderType )
 {
+    CV_INSTRUMENT_REGION_IPP()
+
 #if IPP_VERSION_X100 >= 810 && IPP_DISABLE_BLOCK
     Mat src = _src.getMat();
     _dst.create( maxlevel + 1, 1, 0 );
@@ -1506,6 +1525,8 @@ static bool ipp_buildpyramid( InputArray _src, OutputArrayOfArrays _dst, int max
 
 void cv::buildPyramid( InputArray _src, OutputArrayOfArrays _dst, int maxlevel, int borderType )
 {
+    CV_INSTRUMENT_REGION()
+
     CV_Assert(borderType != BORDER_CONSTANT);
 
     if (_src.dims() <= 2 && _dst.isUMatVector())
