@@ -17,8 +17,8 @@ node {
   }
 
   stage ('Archive') {
-    step([$class: 'ArtifactArchiver', artifacts: 'install.android.debug/*', fingerprint: true])
-    step([$class: 'ArtifactArchiver', artifacts: 'install.android.release/*', fingerprint: true])
+    step([$class: 'ArtifactArchiver', artifacts: 'install.android.debug/**', fingerprint: true])
+    step([$class: 'ArtifactArchiver', artifacts: 'install.android.release/**', fingerprint: true])
   }
 /*
   stage ('Upload To Fabric') {

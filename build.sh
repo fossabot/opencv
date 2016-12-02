@@ -177,7 +177,7 @@ function install_library ()
   mkdir -p ${INSTALL_DIR}/src/main/jnilibs
   #cp -av install/sdk/native/3rdparty/libs/* ${INSTALL_DIR}/src/main/jnilibs
 
-  mkdir -p $1/src/main/${BUILD_TYPE_EXT}/jnilibs
+  mkdir -p ${INSTALL_ALL}/src/main/${BUILD_TYPE_EXT}/jnilibs
   cp -av install/sdk/native/libs/ ${INSTALL_ALL}/src/main/${BUILD_TYPE_EXT}/jnilibs
   cp -av install/sdk/native/libs/ ${INSTALL_DIR}/src/main/jnilibs
 
